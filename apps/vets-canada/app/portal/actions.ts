@@ -89,6 +89,19 @@ export async function submitOrderAction(
   if (!session) {
     return { success: false, error: "Your session expired — please sign in again." };
   }
+  // Revalidate the client is still active and approved for ordering (access
+  // revocation takes effect immediately, not when the session expires).
+  const { rows: acctRows } = await sql`
+    SELECT is_active, delivery_approved FROM clients WHERE id = ${session.clientPk};
+  `;
+  const acct = acctRows[0];
+  if (!acct || acct.is_active !== true || acct.delivery_approved !== true) {
+    return {
+      success: false,
+      error:
+        "Your account is no longer active for ordering. Please contact the food bank.",
+    };
+  }
   const clean = lines.filter((l) => l.quantity > 0);
   const wantsGiftCard = !!giftCardRequested;
   if (clean.length === 0 && !wantsGiftCard) {

@@ -3,7 +3,7 @@
 import { sql } from "@/lib/db";
 import {
   createSession,
-  getSession,
+  requireAuth,
   hashPin,
   isValidPinFormat,
   verifyPin,
@@ -18,8 +18,9 @@ export async function changePinAction(
   _prev: ChangePinState,
   formData: FormData
 ): Promise<ChangePinState> {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  // requireAuth re-checks the live account (rejects deactivated users) and
+  // allows access while a PIN change is pending.
+  const session = await requireAuth({ allowMustChangePin: true });
 
   const newPin = String(formData.get("newPin") || "").trim();
   const confirmPin = String(formData.get("confirmPin") || "").trim();
