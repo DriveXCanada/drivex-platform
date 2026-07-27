@@ -1,5 +1,16 @@
 import type { ExpiringItem } from "@/lib/admin-queries";
 
+function fmtDate(value: string): string {
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value;
+  return d.toLocaleDateString("en-CA", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 function badgeFor(daysLeft: number) {
   if (daysLeft < 0)
     return { label: "Expired", cls: "bg-military/15 text-military" };
@@ -30,7 +41,7 @@ export default function ExpiryAlert({ items }: { items: ExpiringItem[] }) {
                 {it.categoryName} — {it.itemName}
               </p>
               <p className="text-xs text-charcoal/50">
-                Qty {it.quantity} · expires {it.expiryDate}
+                Qty {it.quantity} · expires {fmtDate(it.expiryDate)}
               </p>
             </div>
             <span
