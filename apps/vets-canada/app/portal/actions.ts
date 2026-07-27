@@ -1,13 +1,18 @@
 "use server";
 
 import { sql } from "@/lib/db";
-import { ensureInitialized } from "@/lib/init";
 import { verifyPin } from "@/lib/auth";
 import {
   createClientSession,
   destroyClientSession,
   getClientSession,
 } from "@/lib/client-auth";
+import {
+  getClientIp,
+  isRateLimited,
+  recordLoginAttempt,
+  RATE_LIMIT_MESSAGE,
+} from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
 
 export interface PortalResult {
@@ -20,11 +25,16 @@ export async function clientLoginAction(
   clientIdRaw: string,
   pinRaw: string
 ): Promise<PortalResult> {
-  await ensureInitialized();
   const cid = (clientIdRaw || "").trim();
   const pin = (pinRaw || "").trim();
   if (!cid) return { success: false, error: "Please enter your Client ID." };
   if (!pin) return { success: false, error: "Please enter your PIN." };
+
+  // Throttle brute-force guessing per client IP.
+  const ip = getClientIp();
+  if (await isRateLimited(ip, "portal")) {
+    return { success: false, error: RATE_LIMIT_MESSAGE };
+  }
 
   const { rows } = await sql`
     SELECT id, client_id, name, is_active, delivery_approved, portal_pin
@@ -32,7 +42,10 @@ export async function clientLoginAction(
   `;
   // Generic message for not-found / wrong-pin so IDs can't be probed.
   const generic = { success: false, error: "Incorrect Client ID or PIN." };
-  if (rows.length === 0) return generic;
+  if (rows.length === 0) {
+    await recordLoginAttempt(ip, "portal", false);
+    return generic;
+  }
   const c = rows[0];
   if (!c.is_active) {
     return { success: false, error: "This account isn't active. Please contact the food bank." };
@@ -47,8 +60,12 @@ export async function clientLoginAction(
     return { success: false, error: "No portal PIN is set for this account yet. Please contact the food bank." };
   }
   const ok = await verifyPin(pin, c.portal_pin);
-  if (!ok) return generic;
+  if (!ok) {
+    await recordLoginAttempt(ip, "portal", false);
+    return generic;
+  }
 
+  await recordLoginAttempt(ip, "portal", true);
   await createClientSession({ clientPk: c.id, clientId: c.client_id, name: c.name });
   return { success: true };
 }

@@ -44,6 +44,7 @@ const TENANT_TABLES = [
   "authorized_pickups",
   "availability",
   "holiday_baskets",
+  "login_attempts",
 ] as const;
 
 const APP_ROLE_DEFAULT = "vets_app";
@@ -389,6 +390,17 @@ export async function createTables(): Promise<void> {
     );
   `;
 
+  await sql`
+    CREATE TABLE IF NOT EXISTS login_attempts (
+      id SERIAL PRIMARY KEY,
+      tenant_id TEXT NOT NULL DEFAULT current_setting('app.tenant_id', true) REFERENCES tenants(id) ON DELETE CASCADE,
+      ip TEXT NOT NULL,
+      kind TEXT NOT NULL DEFAULT 'staff',
+      success BOOLEAN NOT NULL DEFAULT false,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `;
+
   await sql`CREATE INDEX IF NOT EXISTS idx_items_category ON items(category_id);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_inventory_item ON inventory(item_id);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_txn_items_txn ON transaction_items(transaction_id);`;
@@ -412,6 +424,7 @@ export async function createTables(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS idx_users_tenant ON users(tenant_id);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_clients_tenant ON clients(tenant_id);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_transactions_tenant ON transactions(tenant_id);`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_login_attempts_ip ON login_attempts(ip, created_at);`;
 }
 
 /**
@@ -590,10 +603,6 @@ export async function resetCatalog(): Promise<void> {
   await seedCatalog();
 }
 
-// In-memory guard so a single warm serverless instance doesn't re-check on
-// every request after it has confirmed the DB is ready.
-let initialized = false;
-
 /**
  * Lightweight, idempotent schema migrations for existing databases.
  * (CREATE TABLE IF NOT EXISTS does not add new columns to existing tables.)
@@ -731,13 +740,14 @@ export async function bootstrapDatabase(): Promise<void> {
 }
 
 /**
- * Ensure the database schema exists, is migrated, and is seeded. Safe to call
- * on every request — it does its work once per warm instance. This lets the
- * app self-initialize the first time it is used, so visiting /api/setup
- * manually is optional.
+ * No-op retained for backwards compatibility with existing call-sites.
+ *
+ * Bootstrapping (schema, RLS, the app role, seeding) is intentionally NOT run
+ * during normal request handling any more, because it requires the superuser
+ * (admin) connection. Running the app must not depend on holding superuser
+ * credentials. Bootstrap now runs only via the token-protected `/api/setup`
+ * endpoint, invoked explicitly during provisioning or after a schema change.
  */
 export async function ensureInitialized(): Promise<void> {
-  if (initialized) return;
-  await bootstrapDatabase();
-  initialized = true;
+  return;
 }

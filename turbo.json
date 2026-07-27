@@ -9,6 +9,7 @@
     "TENANT_ID",
     "TENANT_NAME",
     "SESSION_SECRET",
+    "SETUP_TOKEN",
     "PORT"
   ],
   "tasks": {

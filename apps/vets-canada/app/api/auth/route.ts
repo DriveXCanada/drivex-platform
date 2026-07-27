@@ -6,7 +6,12 @@ import {
   isValidPinFormat,
   verifyPin,
 } from "@/lib/auth";
-import { ensureInitialized } from "@/lib/init";
+import {
+  getClientIp,
+  isRateLimited,
+  recordLoginAttempt,
+  RATE_LIMIT_MESSAGE,
+} from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -30,10 +35,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const ip = getClientIp();
+
   try {
-    // Auto-create and seed the database the first time the app is used,
-    // so visiting /api/setup manually is optional.
-    await ensureInitialized();
+    // Throttle brute-force PIN guessing per client IP.
+    if (await isRateLimited(ip, "staff")) {
+      return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
+    }
 
     // PINs are hashed, so compare against each active user.
     const { rows } = await sql`
@@ -44,6 +52,7 @@ export async function POST(req: NextRequest) {
 
     for (const user of rows) {
       if (await verifyPin(pin, user.pin)) {
+        await recordLoginAttempt(ip, "staff", true);
         await createSession({
           userId: user.id,
           name: user.name,
@@ -58,6 +67,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    await recordLoginAttempt(ip, "staff", false);
     return NextResponse.json(
       { error: "Incorrect PIN. Please try again." },
       { status: 401 }
