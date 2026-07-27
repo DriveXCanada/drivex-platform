@@ -12,6 +12,7 @@ import {
 } from "@/lib/admin-queries";
 import { WEIGHT_UNIT } from "@/lib/units";
 import ExpiryAlert from "@/components/ExpiryAlert";
+import InfoHint from "@/components/InfoHint";
 
 export const dynamic = "force-dynamic";
 
@@ -141,6 +142,10 @@ export default async function AdminHome() {
             </p>
             <p className="text-sm text-charcoal/60">
               Inventory coverage of monthly demand
+              <InfoHint
+                label="What is coverage?"
+                text="How much of this month's expected credit demand your current food inventory can cover. Under 100% means you may run short if every family shops."
+              />
             </p>
           </div>
         </div>

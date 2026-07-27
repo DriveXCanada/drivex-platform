@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
+import InfoHint from "@/components/InfoHint";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,24 @@ export default async function VolunteerHome() {
         Welcome, {session.name}
       </h1>
       <p className="mt-1 text-charcoal/70">What would you like to do?</p>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-navy/10 bg-navy/5 px-4 py-3 text-sm text-charcoal/80">
+        <span aria-hidden>🎓</span>
+        <span>
+          New to the app? Read the{" "}
+          <Link
+            href="/dashboard/training"
+            className="font-semibold text-navy underline"
+          >
+            Training guide
+          </Link>
+          .
+        </span>
+        <InfoHint
+          label="What are credits?"
+          text="Clients shop using monthly 'credits' — 60 for one person plus 5 per extra household member. Items cost credits, and shopping subtracts from their budget."
+        />
+      </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {actions.map((a) => (
