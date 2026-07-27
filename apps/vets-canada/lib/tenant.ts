@@ -23,3 +23,17 @@ export function getTenantName(): string {
   const n = process.env.TENANT_NAME?.trim();
   return n && n.length > 0 ? n : "VETS Canada — Dartmouth";
 }
+
+/**
+ * Branding used on receipts and reports. These seed the tenants row at setup
+ * time; the app reads the live values from the tenants table at runtime (see
+ * `lib/org.ts`). Blank by default so a tenant without a charity number never
+ * shows another tenant's number.
+ */
+export function getTenantTagline(): string {
+  return process.env.TENANT_TAGLINE?.trim() || "";
+}
+
+export function getTenantCharityNumber(): string {
+  return process.env.TENANT_CHARITY_NUMBER?.trim() || "";
+}

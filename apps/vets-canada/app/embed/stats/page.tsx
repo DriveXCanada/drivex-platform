@@ -10,6 +10,8 @@ interface Stats {
   poundsDistributed: number;
   weightUnit: string;
   visitsThisMonth: number;
+  orgName?: string;
+  orgTagline?: string;
 }
 
 const money = (n: number) =>
@@ -66,7 +68,8 @@ export default function StatsEmbed() {
         ))}
       </div>
       <p className="mt-2 text-center text-[10px] uppercase tracking-widest text-charcoal/40">
-        VETS Canada — Dartmouth · Proudly Supported by DriveX
+        {s?.orgName ?? ""}
+        {s?.orgTagline ? ` · ${s.orgTagline}` : ""}
       </p>
     </main>
   );

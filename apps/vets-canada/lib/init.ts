@@ -1,6 +1,11 @@
 import "server-only";
 import { adminSql as sql, getAdminPool } from "@/lib/db";
-import { getTenantId, getTenantName } from "@/lib/tenant";
+import {
+  getTenantId,
+  getTenantName,
+  getTenantTagline,
+  getTenantCharityNumber,
+} from "@/lib/tenant";
 import { hashPin } from "@/lib/auth";
 import { SEED_CATEGORIES } from "@/lib/seed-data";
 import { matchPrices, average } from "@/lib/pricebook";
@@ -69,17 +74,35 @@ export async function createTenantsTable(): Promise<void> {
     CREATE TABLE IF NOT EXISTS tenants (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
+      tagline TEXT,
+      charity_reg_number TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `;
+  // Branding columns for databases created before per-tenant branding existed.
+  await sql`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS tagline TEXT;`;
+  await sql`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS charity_reg_number TEXT;`;
 }
 
-/** Ensure a row exists for the current deployment's tenant. */
+/**
+ * Ensure a row exists for the current deployment's tenant, seeding its
+ * branding (name / tagline / charity registration number) from the TENANT_*
+ * environment variables. These drive receipts and reports, so each tenant
+ * shows its OWN organization details.
+ */
 export async function ensureTenant(): Promise<void> {
   await sql`
-    INSERT INTO tenants (id, name)
-    VALUES (${getTenantId()}, ${getTenantName()})
-    ON CONFLICT (id) DO NOTHING;
+    INSERT INTO tenants (id, name, tagline, charity_reg_number)
+    VALUES (
+      ${getTenantId()},
+      ${getTenantName()},
+      ${getTenantTagline()},
+      ${getTenantCharityNumber()}
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      name = EXCLUDED.name,
+      tagline = EXCLUDED.tagline,
+      charity_reg_number = EXCLUDED.charity_reg_number;
   `;
 }
 

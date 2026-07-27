@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePermission } from "@/lib/auth";
 import { sql } from "@/lib/db";
-import { ORG_NAME, ORG_TAGLINE, CHARITY_REG_NUMBER } from "@/lib/org";
+import { getOrg } from "@/lib/org";
 import PrintButton from "@/components/PrintButton";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +27,8 @@ export default async function ReceiptPage({ params }: { params: { id: string } }
   const c = rows[0];
   const receiptNo = `VC-${String(c.id).padStart(5, "0")}`;
 
+  const org = await getOrg();
+
   return (
     <div className="mx-auto max-w-2xl bg-white p-6 print:p-0">
       <div className="mb-4 flex items-center justify-between print:hidden">
@@ -37,9 +39,9 @@ export default async function ReceiptPage({ params }: { params: { id: string } }
       <div className="border-2 border-navy p-6">
         <div className="border-b-2 border-navy pb-3 text-center">
           <h1 className="font-heading text-2xl font-bold uppercase tracking-wide text-navy">
-            {ORG_NAME}
+            {org.name}
           </h1>
-          <p className="text-xs uppercase tracking-widest text-gold">{ORG_TAGLINE}</p>
+          <p className="text-xs uppercase tracking-widest text-gold">{org.tagline}</p>
           <p className="mt-2 text-sm font-bold text-charcoal">Official Donation Receipt</p>
         </div>
 
@@ -51,7 +53,7 @@ export default async function ReceiptPage({ params }: { params: { id: string } }
           </div>
           <div className="text-right">
             <p className="font-semibold">Charity Registration No.</p>
-            <p>{CHARITY_REG_NUMBER}</p>
+            <p>{org.charityRegNumber || "—"}</p>
           </div>
         </div>
 

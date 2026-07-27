@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requirePermission } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { WEIGHT_UNIT } from "@/lib/units";
-import { ORG_NAME, ORG_TAGLINE, CHARITY_REG_NUMBER } from "@/lib/org";
+import { getOrg } from "@/lib/org";
 import PrintButton from "@/components/PrintButton";
 
 export const dynamic = "force-dynamic";
@@ -125,6 +125,8 @@ export default async function ClientReportPage({
 
   const rangeLabel = from || to ? `${from || "start"} → ${to || "today"}` : "All time";
 
+  const org = await getOrg();
+
   return (
     <div className="mx-auto max-w-3xl bg-white p-6 print:p-0">
       <div className="mb-4 flex items-center justify-between print:hidden">
@@ -136,10 +138,10 @@ export default async function ClientReportPage({
 
       <div className="border-b-2 border-navy pb-3">
         <h1 className="font-heading text-2xl font-bold uppercase tracking-wide text-navy">
-          {ORG_NAME}
+          {org.name}
         </h1>
         <p className="text-xs uppercase tracking-widest text-gold">
-          Client Visit Report · {ORG_TAGLINE}
+          Client Visit Report{org.tagline ? ` · ${org.tagline}` : ""}
         </p>
       </div>
 
@@ -150,8 +152,8 @@ export default async function ClientReportPage({
           {client.point_budget} credits/month
         </p>
         <p className="mt-1 text-xs text-charcoal/50">
-          Period: {rangeLabel} · Generated {new Date().toLocaleString()} · Charity
-          No. {CHARITY_REG_NUMBER}
+          Period: {rangeLabel} · Generated {new Date().toLocaleString()}
+          {org.charityRegNumber ? ` · Charity No. ${org.charityRegNumber}` : ""}
         </p>
       </div>
 

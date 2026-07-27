@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requirePermission } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { WEIGHT_UNIT } from "@/lib/units";
-import { CHARITY_REG_NUMBER } from "@/lib/org";
+import { getOrg } from "@/lib/org";
 import PrintButton from "@/components/PrintButton";
 
 export const dynamic = "force-dynamic";
@@ -72,6 +72,8 @@ export default async function DonorReportPage({
   `;
 
   const rangeLabel = from || to ? `${from || "start"} → ${to || "today"}` : "All time";
+
+  const org = await getOrg();
 
   return (
     <div className="mx-auto max-w-3xl bg-white p-6 print:p-0">
@@ -174,9 +176,9 @@ export default async function DonorReportPage({
       )}
 
       <p className="mt-8 text-center text-xs text-charcoal/40">
-        Thank you for supporting our veterans. · VETS Canada — Dartmouth Food Bank
+        Thank you for supporting our veterans. · {org.name}
         <br />
-        Charity Registration No. {CHARITY_REG_NUMBER}
+        {org.charityRegNumber ? `Charity Registration No. ${org.charityRegNumber}` : ""}
       </p>
     </div>
   );

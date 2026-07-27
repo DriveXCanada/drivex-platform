@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { WEIGHT_UNIT } from "@/lib/units";
+import { getOrg } from "@/lib/org";
 
 export const dynamic = "force-dynamic";
 
@@ -39,8 +40,11 @@ export async function GET() {
           WHERE type = 'stock_out' AND created_at >= date_trunc('month', now()))::int AS visits_month;
     `;
     const r = rows[0];
+    const org = await getOrg();
     return NextResponse.json(
       {
+        orgName: org.name,
+        orgTagline: org.tagline,
         veteransHelped: r.veterans ?? 0,
         peopleServed: r.people ?? 0,
         itemsDistributed: r.items ?? 0,

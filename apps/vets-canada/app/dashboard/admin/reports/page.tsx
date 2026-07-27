@@ -31,7 +31,7 @@ import { WEIGHT_UNIT } from "@/lib/units";
 import ReportControls from "./ReportControls";
 import ClientFilterControls from "./ClientFilterControls";
 import PrintButton from "@/components/PrintButton";
-import { ORG_NAME, ORG_TAGLINE, CHARITY_REG_NUMBER } from "@/lib/org";
+import { getOrg } from "@/lib/org";
 
 const REPORT_TITLES: Record<string, string> = {
   visits: "Client Visits",
@@ -806,19 +806,22 @@ export default async function ReportsPage({
     timeStyle: "short",
   });
 
+  const org = await getOrg();
+
   return (
     <div>
       {/* Header shown only when printing / saving to PDF */}
       <div className="hidden border-b border-navy/30 pb-3 print:block">
         <p className="font-heading text-lg font-bold uppercase tracking-wide text-navy">
-          {ORG_NAME}
+          {org.name}
         </p>
-        <p className="text-xs uppercase tracking-widest text-gold">{ORG_TAGLINE}</p>
+        <p className="text-xs uppercase tracking-widest text-gold">{org.tagline}</p>
         <p className="mt-2 font-heading text-xl font-bold text-navy">
           {reportTitle} — {periodLabel}
         </p>
         <p className="text-xs text-charcoal/60">
-          Generated {generatedOn} · Charity No. {CHARITY_REG_NUMBER}
+          Generated {generatedOn}
+          {org.charityRegNumber ? ` · Charity No. ${org.charityRegNumber}` : ""}
         </p>
       </div>
 
