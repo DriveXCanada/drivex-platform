@@ -50,6 +50,8 @@ const TENANT_TABLES = [
   "availability",
   "holiday_baskets",
   "login_attempts",
+  "expense_items",
+  "settings",
 ] as const;
 
 const APP_ROLE_DEFAULT = "vets_app";
@@ -370,8 +372,27 @@ export async function createTables(): Promise<void> {
       description TEXT,
       vendor TEXT,
       amount NUMERIC(10,2) NOT NULL DEFAULT 0,
+      is_food BOOLEAN NOT NULL DEFAULT false,
       created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS expense_items (
+      id SERIAL PRIMARY KEY,
+      tenant_id TEXT NOT NULL DEFAULT current_setting('app.tenant_id', true) REFERENCES tenants(id) ON DELETE CASCADE,
+      expense_id INTEGER NOT NULL REFERENCES expenses(id) ON DELETE CASCADE,
+      item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+      quantity INTEGER NOT NULL DEFAULT 1
+    );
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS settings (
+      tenant_id TEXT NOT NULL DEFAULT current_setting('app.tenant_id', true) REFERENCES tenants(id) ON DELETE CASCADE,
+      key TEXT NOT NULL,
+      value TEXT,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      PRIMARY KEY (tenant_id, key)
     );
   `;
   await sql`
@@ -448,6 +469,7 @@ export async function createTables(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS idx_clients_tenant ON clients(tenant_id);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_transactions_tenant ON transactions(tenant_id);`;
   await sql`CREATE INDEX IF NOT EXISTS idx_login_attempts_ip ON login_attempts(ip, created_at);`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_expense_items_expense ON expense_items(expense_id);`;
 }
 
 /**
@@ -699,6 +721,8 @@ export async function runMigrations(): Promise<void> {
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS availability TEXT;`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS strengths TEXT;`;
   await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions TEXT NOT NULL DEFAULT '[]';`;
+  // Expenses: flag for out-of-pocket food purchases (linked to expense_items).
+  await sql`ALTER TABLE expenses ADD COLUMN IF NOT EXISTS is_food BOOLEAN NOT NULL DEFAULT false;`;
 
   // --- Multi-tenant migration (idempotent) --------------------------------
   // Add tenant_id to every application table on databases created before the
